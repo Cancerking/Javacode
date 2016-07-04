@@ -1,0 +1,48 @@
+package com.zhf.test;
+
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.zhf.lucene.advance.searcher.AdvanceSearcher;
+import com.zhf.lucene.filter.CustomFilter;
+import com.zhf.lucene.index.FileIndexUtils;
+import com.zhf.lucene.score.CustomScoreQuerys;
+
+public class SearcherTest {
+	
+	private AdvanceSearcher advanceSearcher;
+	
+	@Before
+	public void init(){
+		advanceSearcher = new AdvanceSearcher();
+	}
+	
+	@Test
+	public void testIndex(){
+		FileIndexUtils.index(true);
+	}
+
+	@Test
+	public void testSearcher(){
+		//doc 排序
+		advanceSearcher.searcher("person", Sort.INDEXORDER);
+		//默认评分排序
+		//advanceSearcher.searcher("Apache", Sort.RELEVANCE);
+		//按自定义属性 排序
+		//advanceSearcher.searcher("Apache", new Sort(new SortField("size", SortField.INT)));
+	}
+	
+	@Test
+	public void test01(){
+		CustomScoreQuerys cs =  new CustomScoreQuerys();
+		cs.searcherScore();
+	}
+	
+	@Test
+	public void test02(){
+		CustomFilter cs =  new CustomFilter();
+		cs.searcherByFilter();
+	}
+}

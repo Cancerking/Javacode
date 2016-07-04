@@ -1,0 +1,30 @@
+package com.zhf.test;
+
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.zhf.lucene.advance.searcher.AdvanceSearcher;
+import com.zhf.lucene.index.FileIndexUtils;
+
+public class SearcherTest {
+	
+	private AdvanceSearcher advanceSearcher;
+	
+	@Before
+	public void init(){
+		FileIndexUtils.index(true);
+		advanceSearcher = new AdvanceSearcher();
+	}
+
+	@Test
+	public void testSearcher(){
+		//doc 排序
+		advanceSearcher.searcher("Field", Sort.INDEXORDER);
+		//默认评分排序
+		//advanceSearcher.searcher("Apache", Sort.RELEVANCE);
+		//按自定义属性 排序
+		//advanceSearcher.searcher("Apache", new Sort(new SortField("size", SortField.INT)));
+	}
+}

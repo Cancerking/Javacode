@@ -1,0 +1,88 @@
+package com.zhf.lucene.advance.searcher;
+
+import java.io.IOException;
+
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.Version;
+
+import com.zhf.lucene.index.FileIndexUtils;
+
+/**
+ * 高级搜索
+ * @author zhengfeng@chinasofti.com
+ * @date 2016年6月14日 下午9:34:46 
+ * @version com.zhf.lucene.advance.searcher.AdvanceSearcher - V1.0   
+ * @description (如果有详细说明)
+ */
+public class AdvanceSearcher {
+
+	private IndexReader reader;
+	
+	/**
+	 * 单例IndexSearcher
+	 * @author zhengfeng@chinasofti.com
+	 * @date 2016年6月14日 下午9:35:24
+	 * @return 
+	 * @description (如果有详细说明)
+	 */
+	public IndexSearcher getSeacher(){
+		try {
+			if(reader == null){
+				reader = IndexReader.open(FileIndexUtils.getDirectory());
+			} else {
+				IndexReader ir = IndexReader.openIfChanged(reader);
+				if(ir != null){
+					reader.close();
+					reader = ir;
+				}
+			}
+			return new IndexSearcher(reader);
+		} catch (CorruptIndexException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 查询 排序
+	 * @author zhengfeng@chinasofti.com
+	 * @date 2016年6月14日 下午9:37:12
+	 * @param query
+	 * @param sort 
+	 * @description (如果有详细说明)
+	 */
+	public void searcher(String queryCondtion, Sort sort){
+		try {
+			IndexSearcher searcher = getSeacher();
+			QueryParser parser = new QueryParser(Version.LUCENE_35, "context", new StandardAnalyzer(Version.LUCENE_35));
+			Query query = parser.parse(queryCondtion);
+			TopDocs tds = null;
+			if(null != sort){
+				tds = searcher.search(query, 10, sort);
+			}else{
+				tds = searcher.search(query, 10);
+			}
+			for(ScoreDoc sd : tds.scoreDocs){
+				Document doc = searcher.doc(sd.doc);
+				System.out.println(sd.doc + "--" +doc.get("filename")+"----"+doc.get("path")+"-----"+doc.get("size")+"-----"+doc.get("score"));
+			}
+			searcher.close();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

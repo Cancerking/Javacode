@@ -1,0 +1,124 @@
+package com.zhf.lucene.score;
+
+import java.io.IOException;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.function.CustomScoreProvider;
+import org.apache.lucene.search.function.CustomScoreQuery;
+import org.apache.lucene.search.function.FieldScoreQuery;
+import org.apache.lucene.search.function.FieldScoreQuery.Type;
+import org.apache.lucene.search.function.ValueSourceQuery;
+
+import com.zhf.lucene.index.FileIndexUtils;
+
+/**
+ * 自定义评分
+ * @author zhengfeng@chinasofti.com
+ * @date 2016年6月15日 下午10:24:55 
+ * @version com.zhf.lucene.score.CustomScoreQuery - V1.0   
+ * @description (如果有详细说明)
+ */
+public class CustomScoreQuerys {
+
+	/**
+	 * 根据评分查询
+	 * @author zhengfeng@chinasofti.com
+	 * @date 2016年6月15日 下午10:25:18 
+	 * @description (如果有详细说明)
+	 */
+	public void searcherScore(){
+		try {
+			IndexSearcher searcher = new IndexSearcher(IndexReader.open(FileIndexUtils.getDirectory()));
+			Query query = new TermQuery(new Term("context", "person"));
+			//创建评分域
+			FieldScoreQuery fsd = new FieldScoreQuery("score", Type.INT);
+			//根据评分域和原有的Query创建自定义的Query对象
+			MyCustomScoreQuery mcs = new MyCustomScoreQuery(query, fsd);
+			TopDocs tds = searcher.search(mcs, 10);
+			for(ScoreDoc sd : tds.scoreDocs){
+				Document doc = searcher.doc(sd.doc);
+				System.out.println(sd.doc + "--" +doc.get("filename")+"----"+doc.get("path")+"-----"+doc.get("size")+"-----"+sd.score);
+			}
+			//关闭
+			searcher.close();
+		} catch (CorruptIndexException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 我的评分域
+	 * @author zhengfeng@chinasofti.com
+	 * @date 2016年6月15日 下午10:32:17 
+	 * @version com.zhf.lucene.score.MyCustomScoreQuery - V1.0   
+	 * @description (如果有详细说明)
+	 */
+	private class MyCustomScoreQuery extends  CustomScoreQuery{
+
+		public MyCustomScoreQuery(Query subQuery, ValueSourceQuery valSrcQueries) {
+			super(subQuery, valSrcQueries);
+		}
+
+		/**
+		 * 重写评分规则
+		 * @author zhengfeng@chinasofti.com
+		 * @date 2016年6月15日 下午10:41:27
+		 * @param subQuery
+		 * @param valSrcQueries 
+		 * @description (如果有详细说明)
+		 * 默认评分规则:是通过原有的评分+传入进来的评分域所获取的评分来确定最终的评分
+		 * 为了根据不同的需求进行评分，需要自己进行评分的设定
+		 * 
+		 * 自定义评分的步骤
+		 * 1.创建一个类继承CustomScoreProvider
+		 * 2.覆盖CustomScore方法
+		 */
+		@Override
+		protected CustomScoreProvider getCustomScoreProvider(IndexReader reader)
+				throws IOException {
+			return new MyCustomScoreProvider(reader);
+		}
+	}
+	
+	/**
+	 * 评分
+	 * @author zhengfeng@chinasofti.com
+	 * @date 2016年6月15日 下午11:02:34 
+	 * @version com.zhf.lucene.score.MyCustomScoreProvider - V1.0   
+	 * @description (如果有详细说明)
+	 */
+	private class MyCustomScoreProvider extends CustomScoreProvider {
+
+
+		public MyCustomScoreProvider(IndexReader reader) {
+			super(reader);
+		}
+		
+		/**
+		 * 评分方法
+		 * @author zhengfeng@chinasofti.com
+		 * @date 2016年6月15日 下午11:03:40
+		 * @param doc
+		 * @param subQueryScore 表示默认文档评分
+		 * @param valSrcScore	表示评分域的分
+		 * @return
+		 * @throws IOException 
+		 * @description (如果有详细说明)
+		 */
+		@Override
+		public float customScore(int doc, float subQueryScore, float valSrcScore)
+				throws IOException {
+			return subQueryScore/valSrcScore;
+		}
+	}
+}

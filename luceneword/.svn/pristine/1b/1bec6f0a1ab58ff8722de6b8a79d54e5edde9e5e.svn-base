@@ -1,0 +1,185 @@
+package com.zhf.test;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.SimpleAnalyzer;
+import org.apache.lucene.analysis.StopAnalyzer;
+import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.util.Version;
+import org.junit.Test;
+
+import com.chenlb.mmseg4j.analysis.MMSegAnalyzer;
+import com.zhf.lucene.LuceneWorld;
+import com.zhf.lucene.index.FileIndexUtils;
+import com.zhf.lucene.index.IndexUtil;
+import com.zhf.lucene.searcher.SeacherUtil;
+import com.zhf.luncene.analyzer.AnalyzerUtils;
+import com.zhf.luncene.analyzer.MySameAnalyzer;
+import com.zhf.luncene.analyzer.MyStopAnalyzer;
+
+public class luceneTest {
+	
+	@Test
+	public void testCopyToFile(){
+		try {
+			File file = new File("/Users/mike/Public/lucene/");
+			for(File f : file.listFiles()){
+				String destFile = FilenameUtils.getFullPath(f.getAbsolutePath()) + FilenameUtils.getBaseName(f.getName()) + ".fff";
+				FileUtils.copyFile(f, new File(destFile));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void testIndex(){
+//		LuceneWorld lw = new LuceneWorld();
+//		lw.index();
+		
+		IndexUtil  iu = new IndexUtil();
+		//iu.index();
+		//iu.delete();
+		iu.seacher();
+	}
+	
+	@Test
+	public void testSearcher(){
+		LuceneWorld lw = new LuceneWorld();
+		lw.searcher();
+	}
+	
+	@Test
+	public void testQueryParse() throws Exception{
+		SeacherUtil su = new SeacherUtil();
+		//创建QueryParser对象,默认搜索content
+		QueryParser parser = new QueryParser(Version.LUCENE_35, "content", new StandardAnalyzer(Version.LUCENE_35));
+		//parser.setDefaultOperator(Operator.AND);  修改默认空格是AND
+		//parser.setAllowLeadingWildcard(true); 开启第一个字符通配符匹配 默认关闭  因为效率低
+		//搜索content中包含a
+		Query query = parser.parse("a");
+		//包含f 又包含 d 空格默认是OR
+		//query = parser.parse("f d");
+		
+		//修改默认域为name
+		//query = parser.parse("name:a");
+		
+		//通配符* 和 ？
+		//query = parser.parse("name:a*");
+		//query = parser.parse("name:*a");
+		
+		//name中没有a 但是content中含有like
+		//query = parser.parse("- name:a + like ");
+		
+		//闭区间
+		//query = parser.parse("id:[1 TO 3]");
+
+		query = parser.parse("\"I like a\"");
+		
+		su.searcherByQueryParser(query, 10);
+	}
+	
+	@Test
+	public void testIndexFile(){
+		FileIndexUtils.index(true);
+	}
+	@Test
+	public void testSearcher01(){
+		SeacherUtil su = new SeacherUtil();
+		su.searcherByPage("lucene", 1, 10);
+		System.out.println("----------------------");
+		su.searcherByNoPage("lucene");
+	}
+	
+//	################################### 华丽的分割线 #################################################
+	
+	@Test
+	public void testAnalyzer04(){
+		try {
+			Analyzer a1 = new MySameAnalyzer();
+			String str = "我来自安徽";
+			Directory dir = new RAMDirectory();
+			IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig(Version.LUCENE_35, a1));
+			Document document = new Document();
+			document.add(new Field("context", str, Field.Store.YES, Field.Index.ANALYZED));
+			writer.addDocument(document);
+			writer.close();
+			IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+			TopDocs topDocs = searcher.search(new TermQuery(new Term("context", "北")),  10);
+			Document doc = searcher.doc(topDocs.scoreDocs[0].doc);
+			System.out.println(doc.get("context"));
+		} catch (CorruptIndexException e) {
+			e.printStackTrace();
+		} catch (LockObtainFailedException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	@Test
+	public void testAnalyzer03(){
+		//Analyzer a1 = new MMSegAnalyzer();
+		Analyzer a1 = new MySameAnalyzer();
+		String str = "我来自安徽";
+		
+		AnalyzerUtils.displayToken(str, a1);
+	}
+	
+	@Test
+	public void testAnalyzer02(){
+		Analyzer a1 = new MyStopAnalyzer(new String[]{"my","am"});
+		Analyzer a2 = new StopAnalyzer(Version.LUCENE_35); 
+		String str = "this is my house, i am come from yunnan";
+		
+		AnalyzerUtils.displayToken(str, a1);
+		AnalyzerUtils.displayToken(str, a2);
+	}
+	
+	@Test
+	public void testAnalyzer01(){
+		//以下分词不适合中文
+		Analyzer a1 = new StandardAnalyzer(Version.LUCENE_35); 
+		Analyzer a2 = new StopAnalyzer(Version.LUCENE_35); 
+		Analyzer a3 = new SimpleAnalyzer(Version.LUCENE_35); 
+		Analyzer a4 = new WhitespaceAnalyzer(Version.LUCENE_35); 
+		String str = "this is my house, i am come from yunnan";
+		
+		AnalyzerUtils.displayTokenInfo(str, a1);
+		System.out.println("==============================");
+		AnalyzerUtils.displayTokenInfo(str, a2);
+		System.out.println("==============================");
+		AnalyzerUtils.displayTokenInfo(str, a3);
+		System.out.println("==============================");
+		AnalyzerUtils.displayTokenInfo(str, a4);
+		
+//		String str = "this is my house, i am come from yunnan. 111@qq.com, 2423";
+//		
+//		AnalyzerUtils.displayToken(str, a1);
+//		AnalyzerUtils.displayToken(str, a2);
+//		AnalyzerUtils.displayToken(str, a3);
+//		AnalyzerUtils.displayToken(str, a4);
+	}
+}

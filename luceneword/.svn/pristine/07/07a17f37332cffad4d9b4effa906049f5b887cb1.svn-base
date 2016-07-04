@@ -1,0 +1,26 @@
+package com.zhf.luncene.analyzer;
+
+import java.io.IOException;
+
+import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.TokenStream;
+
+/**
+ * 自定义 中文分词 过滤器
+ * @author zhengfeng@chinasofti.com
+ * @date 2016年6月11日 下午6:24:08 
+ * @version com.zhf.luncene.analyzer.MySameTokenFilter - V1.0   
+ * @description (如果有详细说明)
+ */
+public class MySameTokenFilter extends TokenFilter {
+
+	protected MySameTokenFilter(TokenStream input) {
+		super(input);
+	}
+
+	@Override
+	public boolean incrementToken() throws IOException {
+		return false;
+	}
+
+}
